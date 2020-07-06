@@ -1,0 +1,7 @@
+# Non-shared directories
+node_modules
+dist/
+ssl/
+
+# Non-shared files
+.env
