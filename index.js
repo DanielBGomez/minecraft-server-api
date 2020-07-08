@@ -7,6 +7,7 @@ const Server = require('./src/Server')
 
 // Configs
 const Sounds = require('./configs/sounds.json')
+const Effects = require('./configs/effects.json')
 
 // Init server
 const instance = Server({
@@ -20,6 +21,7 @@ const instance = Server({
     api: {
         minecraftServer: process.env.MCSV_IP,
         sounds: Sounds,
+        effects: Effects,
         rcon: {
             port: process.env.MCSV_RCON_PORT,
             password: process.env.MCSV_RCON_PASSWORD

@@ -24,7 +24,9 @@ class MinecraftRCONAPI {
         // Vars
         this._rconConnection;
         this._connected = false
-        this._sounds = params.sounds || {}
+
+        this.SOUNDS = params.sounds || {}
+        this.EFFECTS = params.effects || {}
         
         this._minecraftServer = params.minecraftServer || 'localhost'
         this._rconPort = (params.rcon || {}).port || 25575
@@ -65,6 +67,36 @@ class MinecraftRCONAPI {
                 .catch(err => reject({ msg: "No se ha podido conectar al servidor", err }))
         })
     }
+    /**
+     * Broadcast message to chat.
+     * 
+     * @param {object} params 
+     * @param {string} params.msg   Message
+     * @param {string} params.name  Sender name
+     */
+    broadcast(params = {}){
+        return new Promise((resolve, reject) => {
+            const { msg } = params
+            let { name } = params
+
+            // Validate
+            try {
+                Validate.string(msg, { label: 'Message' })
+            } catch(err) {
+                return reject({ msg: "Los parámetros no son válidos", err: { msg: err } })
+            }
+            try {
+                name = Validate.string(name, { label: 'Name', regexp: /^[A-Za-z ]{1,16}$/ })
+            } catch(err) {
+                name = false
+            }
+
+            // Send command
+            this.send(`say ${name ? `[${name}] ` : ''}${msg}`)
+                .then(resolve)
+                .catch(reject)
+        })
+    }
     kickPlayer(params = {}){
         return new Promise((resolve, reject) => {
             const { player, reason = '' } = params
@@ -73,7 +105,7 @@ class MinecraftRCONAPI {
             const errors = {}
 
             try {
-                Validate.string(player, { label: 'Player', regex: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+                Validate.string(player, { label: 'Player', regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
             } catch(err){ errors.player = err }
 
             try {
@@ -115,7 +147,7 @@ class MinecraftRCONAPI {
             const errors = {}
 
             try {
-                Validate.string(player, { regex: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+                Validate.string(player, { regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
             } catch(err) {
                 errors.player = err
             }
@@ -153,9 +185,55 @@ class MinecraftRCONAPI {
     }
     /**
      * 
-     * @bug "Sound is to far away to be heard"
+     * @param {*} params 
+     */
+    giveEffect(params = {}){
+        return new Promise((resolve, reject) => {
+            const { player = '@a', effect, seconds = 10, amplifier = 1, hideParticles = false } = params
+
+            // Validations
+            const errors = {}
+
+            try {
+                Validate.string(player, { label: 'Player', regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+            } catch(err) {
+                errors.player = err
+            }
+            try {
+                Validate.string(effect, { label: 'Effect', enum: this.EFFECTS || params.effects || [] })
+            } catch(err) {
+                errors.effect = err
+            }
+            try {
+                Validate.number(seconds, { label: 'Seconds', length: { min: 0, max: 1000000 } })
+            } catch(err) {
+                errors.seconds = err
+            }
+            try {
+                Validate.number(amplifier, { label: 'Amplifier', length: { min: 0, max: 255 } })
+            } catch(err) {
+                errors.amplifier = err
+            }
+
+            // Has errors
+            if( Object.keys(errors).length ) return reject({ msg: "Los parámetros no son válidos", err: errors })
+
+            // Send command
+            this.send(`effect give ${player} ${effect} ${seconds} ${amplifier} ${hideParticles ? 'true' : 'false'}`)   
+                .then(resolve)
+                .catch(reject)
+        })
+    }
+    /**
+     * Plays a specified sound at a player, in a location, and in a specific volume and pitch.
      * 
      * @param {object} params 
+     * @param {string} params.sound     Specifies the sound to play.
+     * @param {string} params.source    Specifies the music category and options the sound falls under.
+     * @param {string} params.target    Specifies the sound's target.
+     * @param {object} params.position  Specifies the position to play the sounds from.
+     * @param {number} params.volume    Specifies the distance that the sound can be heard.
+     * @param {number} params.pitch     Specifies the pitch of the sound.
      */
     playSound(params = {}){
         return new Promise((resolve, reject) => {
@@ -197,7 +275,7 @@ class MinecraftRCONAPI {
             const errors = {}
 
             try {
-                Validate.string(sound, { label: 'Sound', enum: this._sounds })
+                Validate.string(sound, { label: 'Sound', enum: this.SOUNDS || params.sounds || [] })
             } catch(err) { errors.sound = err }
 
             try {
@@ -205,7 +283,7 @@ class MinecraftRCONAPI {
             } catch(err){ errors.source = err }
 
             try {
-                Validate.string(target, { label: 'Target', regex: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+                Validate.string(target, { label: 'Target', regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
             } catch(err) { errors.target = err }
 
             try {
@@ -231,6 +309,7 @@ class MinecraftRCONAPI {
     }
 }
 
+// Exports
 module.exports = params => new MinecraftRCONAPI(params)
 module.exports.Class = MinecraftRCONAPI
 

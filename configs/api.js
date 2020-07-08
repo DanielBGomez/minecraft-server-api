@@ -7,6 +7,13 @@ module.exports = {
             slug: 'players',
             requiredParams: []
         },
+        broadcast: {
+            command: 'broadcast',
+            aliases: ['msg', 'say'],
+            cooldown: 20,
+            slug: 'broadcast',
+            requiredParams: ['msg']
+        },
         tp: {
             command: 'tpPlayer',
             cooldown: 1200,
@@ -16,15 +23,24 @@ module.exports = {
         },
         sound: {
             command: 'playSound',
-            cooldown: 10,
+            cooldown: 30,
+            slug: 'sound',
             key: params => `${params.sound}-${params.target}`,
             requiredParams: ['sound']
         },
         kick: {
             command: 'kickPlayer',
             cooldown: 600,
+            slug: 'kick',
             key: params => params.player,
             requiredParams: ['player', 'reason']
+        },
+        effect: {
+            command: 'giveEffect',
+            cooldown: 60,
+            slug: 'effect',
+            key: params => params.effect,
+            requiredParams: ['effect']
         }
     }
 }
