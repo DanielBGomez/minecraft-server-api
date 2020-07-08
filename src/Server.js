@@ -15,6 +15,7 @@ const Validate = require('./Validate')
 
 // Configs
 const API_CONFIG = require('../configs/api')
+// const IS_DEVELOPMENT = process.env.NODE_ENV == 'development'
 
 // Class
 class Server {
@@ -48,6 +49,11 @@ class Server {
         // Listeners
 
     }
+    /**
+     * Initialize server instance.
+     * 
+     * @param {object} params   Configuration params
+     */
     async init(params = {}){
         // Create app
         this._App = express()
@@ -94,6 +100,9 @@ class Server {
         // Return instance
         return this
     }
+    /**
+     * Loop that looks up for queued commands and executes them.
+     */
     loop(){
         // Get queued commands
         this._Cache.get('commands', 'queue')
@@ -101,7 +110,7 @@ class Server {
                 const QueuedCommands = Object.keys(commands || {})
 
                 // Log
-                this.log(`${QueuedCommands.length} commands queued!`)
+                if(QueuedCommands.length) this.log(`${QueuedCommands.length} commands queued!`)
 
                 // Parse queued commands
                 Promise.allSettled( QueuedCommands.map(key => new Promise((resolve, reject) => {
@@ -142,9 +151,7 @@ class Server {
                         })
                     ))
                     .then(resp => {
-                        if(!resp.length) return this.log("Queued commands parsed")
-                        this.log("Queued commands parsed", resp)
-
+                        if(resp.length) this.log("Queued commands parsed", resp)
                     })
                     .finally(() => setTimeout(() => this._loop = this.loop(), this.LOOP_INTEVAL))
             })
@@ -156,19 +163,26 @@ class Server {
                 setTimeout(() => this._loop = this.loop(), this.LOOP_INTEVAL)
             })
     }
+    /**
+     * Queue command as middleware
+     * 
+     * @param {object} req  Express request object
+     * @param {object} res  Express response object
+     */
     queue(req, res){
         new Promise( async (resolve, reject) => {
                 // Validate command (exist)
                 const PARAMS = req.query // req.body -- for posts
-                const COMMAND_DATA = API_CONFIG.COMMANDS[PARAMS.command] || Object.keys(API_CONFIG).map(key => API_CONFIG.COMMANDS[key]).find(data => (data.aliases || []).includes(PARAMS.command) )
-                delete PARAMS.command
-        
+                const COMMAND_DATA = API_CONFIG.COMMANDS[PARAMS.command] || Object.keys(API_CONFIG.COMMANDS).map(key => API_CONFIG.COMMANDS[key]).find(data => (data.aliases || []).includes(PARAMS.command) )
+                
                 // Validate command
-                if(!COMMAND_DATA) return reject({ code: 409, msg: 'El comando solicitado no se encuentra disponible', errKey: 'COMMAND_NOT_FOUND' })
+                if(!COMMAND_DATA) return reject({ code: 409, msg: 'El comando solicitado no se encuentra disponible', data: { command: PARAMS.command }, errKey: 'COMMAND_NOT_FOUND' })
+
+                delete PARAMS.command
                 
                 // Validate params
                 if(Array.isArray(COMMAND_DATA.requiredParams)) {
-                    if(COMMAND_DATA.requiredParams.some(param => typeof PARAMS[param] == 'undefined')) return reject({ code: 400, msg: 'Alguno de los parámetros requeridos no se encuentran en la solicitud', errKey: 'MISSING_PARAMS'})
+                    if(COMMAND_DATA.requiredParams.some(param => typeof PARAMS[param] == 'undefined')) return reject({ code: 400, msg: 'Alguno de los parámetros requeridos no se encuentran en la solicitud', data: { required: COMMAND_DATA.requiredParams }, errKey: 'MISSING_PARAMS'})
                 }
         
                 // Get command key
@@ -185,7 +199,7 @@ class Server {
         
                 if(cachedData) {
                     // Duplicated? (not fired)
-                    console.log(cachedData)
+                    // console.log(cachedData)
                     try {
                         // Is in queue? -- HGET is not defined in the Cache module; that's why here's an Awaited Promise
                         const QueueData = await new Promise((resolve, reject) => {
@@ -201,9 +215,21 @@ class Server {
                         return reject({ code: 500, msg: 'Algo salió mal con el sistema de caché', errKey: 'CACHE_ERROR', err })
                     }
                     // return res.status(201).send("Comando registrado!")
+
+                    // Get cooldown -- TTL is not defined in the Cache module; that's why here's an Awaited Promise
+                    let cooldown;
+                    
+                    try {
+                        cooldown = await new Promise((resolve, reject) => {
+                                this._Cache.client.TTL(`${COMMAND_DATA.slug}:${KEY}`, (err, data) => {
+                                        if(err) return reject(err)
+                                        resolve(data)
+                                    })
+                            })
+                    } catch {} // Ignore cooldown errs
         
                     // Return 'on Cooldown'
-                    return reject({ code: 429, msg: 'El comando se encuentra en enfriamiento', errKey: 'COMMAND_ON_COOLDOWN' })
+                    return reject({ code: 429, msg: 'El comando se encuentra en enfriamiento', err: { cooldown }, errKey: 'COMMAND_ON_COOLDOWN' })
                 }
         
                 // Register command
