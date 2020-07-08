@@ -121,6 +121,9 @@ class MinecraftRCONAPI {
                 .catch(reject)
         })
     }
+    /**
+     * Get array list of current players.
+     */
     getPlayers(){
         return new Promise((resolve, reject) => {
             this.send("list")
@@ -184,8 +187,48 @@ class MinecraftRCONAPI {
         })
     }
     /**
+     * Remove status effects on players and other entities.
      * 
-     * @param {*} params 
+     * @param {object} params
+     * @param {string|'@a'} params.player   Specifies the target(s).
+     * @param {string|'all'} params.effect  Specifies the effect to clear.
+     * @returns {Promise<object>}
+     */
+    clearEffect(params = {}){
+        return new Promise((resolve, reject) => {
+            const { player = '@a', effect } = params
+
+            // Validations
+            try {
+                Validate.string(player, { label: 'Player', regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+            } catch(err) {
+                errors.player = err
+            }
+            try {
+                Validate.string(effect, { label: 'Effect', enum: this.EFFECTS || params.effects || [], optional: true })
+            } catch(err) {
+                errors.effect = err
+            }
+
+            // Has errors?
+            if( Object.keys(errors).length ) return reject({ msg: "Los valores no son válidos", err: errors })
+
+            // Send command
+            this.send(`effect clear ${player} ${effect || ''}`)   
+                .then(resolve)
+                .catch(reject)
+        })
+    }
+    /**
+     * Add status effects on players and other entities.
+     * 
+     * @param {object} params
+     * @param {string|'@a'} params.player           Specifies the target(s).
+     * @param {string} params.effect                Specifies the effect to add.
+     * @param {number|1} params.seconds             Specifies the effect's duration in seconds.
+     * @param {number|1} params.amplifier           Specifies the number of additional levels to add to the effect.
+     * @param {boolean|false} params.hideParticles  Specifies whether the particles and the HUD indicator‌ of the status effect should be hidden.
+     * @returns {Promise<object>}
      */
     giveEffect(params = {}){
         return new Promise((resolve, reject) => {
@@ -228,48 +271,21 @@ class MinecraftRCONAPI {
      * Plays a specified sound at a player, in a location, and in a specific volume and pitch.
      * 
      * @param {object} params 
-     * @param {string} params.sound     Specifies the sound to play.
-     * @param {string} params.source    Specifies the music category and options the sound falls under.
-     * @param {string} params.target    Specifies the sound's target.
-     * @param {object} params.position  Specifies the position to play the sounds from.
-     * @param {number} params.volume    Specifies the distance that the sound can be heard.
-     * @param {number} params.pitch     Specifies the pitch of the sound.
+     * @param {string} params.sound             Specifies the sound to play.
+     * @param {string|'player'} params.source   Specifies the music category and options the sound falls under.
+     * @param {string|'@a'} params.target       Specifies the sound's target.
+     * @param {object} params.position          Specifies the position to play the sounds from.
+     * @param {number|'~'} params.position.x    X coordinate
+     * @param {number|'~'} params.position.y    Y coordinate
+     * @param {number|'~'} params.position.z    Z coordinate
+     * @param {number|1} params.volume          Specifies the distance that the sound can be heard.
+     * @param {number|1} params.pitch           Specifies the pitch of the sound.
+     * @returns {Promise<object>}
      */
     playSound(params = {}){
         return new Promise((resolve, reject) => {
             // Parse params
             const { sound, source = 'player', target = '@a', position = { x: '~', y: '~', z: '~' }, distance = 1, pitch = 1 } = params
-
-            /**
-             *  /playsound <sound> <source> <targets> [x] [y] [z] [volume] [pitch] [minimumVolume]
-             *
-             * sound is the sound effect to start playing. (See List of Sound Effect Names.)
-             * source is the source that you want to play the sound effect. It can be one of the following: ambient, block, hostile, master, music, neutral, player, record, voice, weather.
-             * targets is the name of the player (or a target selector) that you wish to play the sound effect for.
-             * x y z is optional. It is the coordinate where the sound will be played from. Learn about the coordinate system.
-             * volume is optional. The sound can be heard within an audible sphere. The volume determines the size of that audible sphere and therefore the distance away that the sound can be heard. The volume must be at least a value of 0.0. The higher the value, the larger the audible sphere and the further away the sound effect can be heard.
-             * pitch is optional. It determines the pitch for the sound effect. It can be a value between 0.0 and 2.0. The higher the value, the higher the pitch.
-             * minimumVolume is optional. It is determines the minimum volume that the sound will be heard outside of the audible sphere. It can be a value between 0.0 and 1.0.  
-            */
-
-            /**
-             * Sound
-             * - <Need list>
-             */
-
-            /**
-             * Target source (?)
-             * - ambient
-             * - block
-             * - hostile
-             * - master
-             * - music
-             * - neutral
-             * - player
-             * - record
-             * - voice
-             * - weather
-             */
 
             // Validations
             const errors = {}
@@ -295,7 +311,7 @@ class MinecraftRCONAPI {
                 }
             } catch(err) { errors.position = err }
 
-            //
+            // Has errors?
             if( Object.keys(errors).length ) return reject({ msg: "Los parámetros no son válidos", err: errors })
 
             // Playsound from console must be invoced from the execute command
