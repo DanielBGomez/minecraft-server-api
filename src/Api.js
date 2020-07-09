@@ -11,7 +11,7 @@
  * ✅ Reproducir sonidos
  * ✅ Kick
  * - Tiempo y clima
- * - Efectos (Nausea, Cegera, etc)
+ * ✅ Efectos (Nausea, Cegera, etc)
  * - Invocar mobs
  * - Give (dar items, etc)
 */
@@ -316,6 +316,79 @@ class MinecraftRCONAPI {
 
             // Playsound from console must be invoced from the execute command
             this.send(`execute at ${target} run playsound ${sound} ${source} ${target} ${position.x} ${position.y} ${position.z} ${distance} ${pitch}`)
+                .then(resolve)
+                .catch(reject)
+        })
+    }
+    /**
+     * Sets the weather.
+     * 
+     * @param {object} params 
+     * @param {('clear'|'rain'|'thunder')} params.type  Specifies the weather type.
+     * @param {number|300} params.duration                  Specifies the weather duration.
+     * @returns {Promise<object>}
+     */
+    setWeather(params = {}){
+        return new Promise((resolve, reject) => {
+            const { type, duration = 300 } = params
+
+            // Validations
+            const errors = {}
+
+            try {
+                Validate.string(type, { label: 'Type', enum: ['clear', 'rain', 'thunder'] })
+            } catch(err) {
+                errors.type = err
+            }
+            try {
+                Validate.number(duration, { label: "Duration", length: { min: 0, max: 1000000 } })
+            } catch(err){
+                errors.duration = err
+            }
+
+            // Has errors
+            if( Object.keys(errors).length ) return reject({ msg: "Los parámetros no son válidos", err: errors })
+
+            // Send command
+            this.send(`weather ${type} ${duration}`)   
+                .then(resolve)
+                .catch(reject)
+        })
+    }
+    /**
+     * Changes the world's game time.
+     * 
+     * @param {object} params 
+     * @param {('day'|'night'|'noon'|'midnight')} params.type   Specifies the time type.
+     * @param {number} params.amount                            Specifies the time to add or set.
+     * @returns {Promise<object>}
+     */
+    setTime(params = {}){
+        return new Promise((resolve, reject) => {
+            const { type, amount } = params
+
+            // Validations
+            const errors = {}
+
+            try {
+                Validate.string(type, { label: 'Type', enum: ['add', 'set'] })
+            } catch(err) {
+                errors.type = err
+            }
+            try {
+                // If the type is 'set' the amount can be a timespec or time value
+                if(type == 'set') Validate.string(amount, { label: 'Duration', regexp: /^(?:day|night|noon|midnight|\d{1,6})$/ })
+                // Validate number
+                else Validate.number(amount, { label: 'Duration', length: { min: 0, max: 100000 } })
+            } catch(err){
+                errors.amount = err
+            }
+
+            // Has errors
+            if( Object.keys(errors).length ) return reject({ msg: "Los parámetros no son válidos", err: errors })
+
+            // Send command
+            this.send(`time ${type} ${amount}`)   
                 .then(resolve)
                 .catch(reject)
         })
