@@ -4,7 +4,8 @@ const fs = require('fs-extra')
 const path = require('path')
 const https = require("https")
 const express = require('express')
-// const cors = require('cors')
+const cors = require('cors')
+const slowDown = require('express-slow-down')
 const helmet = require('helmet')
 const io = require('socket.io')
 
@@ -30,9 +31,12 @@ class Server {
         this._SocketServer;
         this._loop;
 
+        this.players = new Set()
+
         this.API_OPTIONS = params.api || {}
         this.CACHE_OPTIONS = params.cache || {}
 
+        this.CORS_OPTIONS = params.corsOptions || {}
         this.DIST_PATH = params.distPath || 'dist'
 
         this.SSL_CERT = (params.ssl || {}).cert
@@ -59,21 +63,32 @@ class Server {
         this._App = express()
 
         // Init API
-        this._Api = await Api(params.api || this.API_OPTIONS).connect()
+        this._Api = Api(params.api || this.API_OPTIONS)
 
         // Init Cache connection
-        this._Cache = Cache(params.cache || this.CACHE_OPTIONS)
+        try {
+            this._Cache = Cache(params.cache || this.CACHE_OPTIONS)
+        } catch(err){
+            console.log("Can't connect to cache server", err)
+            process.exit()
+        }
 
         // Setup middlewares
         // Cors
-        // this._App.use(cors())
+        this._App.use(cors(params.corsOptions || this.CORS_OPTIONS))
         // Setup dist path
         this._App.use(express.static(path.join(__dirname, params.distPath || this.DIST_PATH), { index: false }))
         this._App.use(helmet())
+        this._App.use(slowDown({
+            windowMs: 15 * 1000, // 15 secs
+            delayAfter: 5, // 5 request per 15 secs
+            delayMs: 1000, // Delay 1sec per request above 5
+        }))
 
+        this._App.use(express.json())
 
         // Setup queue
-        this._App.get('/queue', this.queue.bind(this))
+        this._App.post('/queue', this.queue.bind(this))
 
         // this._App.get('/', (req, res) => {
         //     res.sendFile( path.join( __dirname, params.distPath || this.DIST_PATH, 'taskpane.html') )
@@ -90,15 +105,54 @@ class Server {
 
         // Start
         this._Server.listen(params.port || this.PORT)
-        this.log("Listening to " + this.PORT)
+        this.log("Server listening on port " + this.PORT)
         
         // Listeners
 
         // Executions
-        this._loop = this.loop()
+        this._loop = this.connectLoop()
 
         // Return instance
         return this
+    }
+    /**
+     * Loop that tries to connect to minecraft server
+     */
+    connectLoop(lastWait = 1000){
+        this.log("Trying to connect to Minecraft Server...")
+
+        this._Api.connect()
+            .then(() => {
+                this.log("Connected to Minecraft Server!")
+
+                // Start parsing loop
+                this._loop = this.loop()
+
+                // Disconnect event
+                this._Api.onDisconnect = e => {
+                        this.log("Connection with Minecraft server lost!")
+
+                        // Clear loop
+                        clearTimeout(this._loop)
+
+                        // Setup connect loop
+                        this._loop = this.connectLoop()
+                    }
+            })
+            .catch(err => {
+                this.log("Can't connect to Minecraft server", err)
+
+                // Parse lastWait
+                lastWait = parseInt(lastWait)
+                if(lastWait < 1000) lastWait = 1000
+
+                let wait = lastWait * 2
+                if(wait > 60000) wait = 60000
+
+                this.log(`Next attemp in ${lastWait / 1000} seconds`)
+
+                setTimeout(() => this._loop = this.connectLoop(wait), wait)
+            })
     }
     /**
      * Loop that looks up for queued commands and executes them.
@@ -172,7 +226,7 @@ class Server {
     queue(req, res){
         new Promise( async (resolve, reject) => {
                 // Validate command (exist)
-                const PARAMS = req.query // req.body -- for posts
+                const PARAMS = req.body // req.body -- for posts
                 const COMMAND_DATA = API_CONFIG.COMMANDS[PARAMS.command] || Object.keys(API_CONFIG.COMMANDS).map(key => API_CONFIG.COMMANDS[key]).find(data => (data.aliases || []).includes(PARAMS.command) )
                 
                 // Validate command
@@ -241,14 +295,14 @@ class Server {
         
                         // Store queue data
                         this._Cache.save('commands', CommandsData, { mkey: 'queue', ttl: false, indexes: [] })
-                            .then(data => resolve({ code: 201, msg: "El comando se ha puesto en la cola exitosamente!", data }))
+                            .then(data => resolve({ code: 201, msg: "El comando se ha puesto en la cola exitosamente!", data: { cooldown: COMMAND_DATA.cooldown, data } }))
                             .catch(err => reject({ code: 500, msg: 'Algo salió mal con el sistema de caché', errKey: 'CACHE_ERROR', err }))
                     })
                     .catch(err => reject({ code: 500, msg: 'Algo salió mal con el sistema de caché', errKey: 'CACHE_ERROR', err }))
             })
             .then(data => {
                 this.log("Command queued", data)
-                res.status(201).send(data.msg)
+                res.status(201).send(data)
             })
             .catch(err => {
                 // Log
