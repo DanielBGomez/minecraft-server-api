@@ -10,7 +10,7 @@
  *      ✅ Cabina de protección
  * ✅ Reproducir sonidos
  * ✅ Kick
- * - Tiempo y clima
+ * ✅ Tiempo y clima
  * ✅ Efectos (Nausea, Cegera, etc)
  * - Invocar mobs
  * - Give (dar items, etc)
@@ -31,6 +31,9 @@ class MinecraftRCONAPI {
         this._minecraftServer = params.minecraftServer || 'localhost'
         this._rconPort = (params.rcon || {}).port || 25575
         this._rconPassword = (params.rcon || {}).password || "password"
+
+        // Callbacks
+        this.onDisconnect = typeof params.onDisconnect == "function" ? params.onDisconnect : () => {}
         
         // Execs
     }
@@ -56,13 +59,25 @@ class MinecraftRCONAPI {
             this._rconConnection.connect()
                 .then(() => {
                     // Log
-                    console.log("Se ha conectado al servidor de minecraft!")
+                    // console.log("Se ha conectado al servidor de minecraft!")
 
                     // Update connected status
                     this._connected = true
 
                     // Return Api instance
                     resolve(this)
+
+                    /**
+                     * Extension of Rcon lib
+                     * handle close event
+                     */
+                    this._rconConnection._tcpSocket.on('close', hadError => {
+                            // Update connected status
+                            this._connected = false
+
+                            // Execute onDisconnect function
+                            if(typeof this.onDisconnect == "function") this.onDisconnect(hadError)
+                        })
                 })
                 .catch(err => reject({ msg: "No se ha podido conectar al servidor", err }))
         })
@@ -140,10 +155,12 @@ class MinecraftRCONAPI {
     tpPlayer(params = {}){
         return new Promise((resolve, reject) => {
             // Player is required
-            const player = params.player
+            const { player, tier = 1 } = params
             
-            const x = typeof params.x != "undefined" ? params.x : parseInt( Math.random() * 200000) - 100000
-            const z = typeof params.z != "undefined" ? params.z : parseInt( Math.random() * 200000) - 100000
+            const MaxNumber = 200 * Math.pow(10, 1 ) // tier)
+
+            const x = typeof params.x != "undefined" ? params.x : parseInt( Math.random() * MaxNumber) - parseInt(MaxNumber / 2)
+            const z = typeof params.z != "undefined" ? params.z : parseInt( Math.random() * MaxNumber) - parseInt(MaxNumber / 2)
             const y = typeof params.y != "undefined" ? params.y : parseInt( Math.random() * 240 ) + 10
             
             // Validate coords
