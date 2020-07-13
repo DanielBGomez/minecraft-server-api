@@ -10,7 +10,7 @@ module.exports = {
         broadcast: {
             command: 'broadcast',
             aliases: ['msg', 'say'],
-            cooldown: 20,
+            cooldown: 10,
             slug: 'broadcast',
             requiredParams: ['msg']
         },
@@ -23,7 +23,7 @@ module.exports = {
         },
         sound: {
             command: 'playSound',
-            cooldown: 30,
+            cooldown: 10,
             slug: 'sound',
             key: params => `${params.sound}-${params.target}`,
             requiredParams: ['sound']
