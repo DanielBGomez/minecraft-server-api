@@ -51,6 +51,7 @@ class Server {
          */
 
         // Listeners
+        this.LISTENERS = {}
 
     }
     /**
@@ -225,6 +226,9 @@ class Server {
      */
     queue(req, res){
         new Promise( async (resolve, reject) => {
+                // Must be connected to the api
+                if(!this._Api._connected) return reject({ code: 500, msg: 'El servidor de Minecraft se encuentra inactivo', errKey: 'API_NOT_CONNECTED' })
+            
                 // Validate command (exist)
                 const PARAMS = req.body // req.body -- for posts
                 const COMMAND_DATA = API_CONFIG.COMMANDS[PARAMS.command] || Object.keys(API_CONFIG.COMMANDS).map(key => API_CONFIG.COMMANDS[key]).find(data => (data.aliases || []).includes(PARAMS.command) )
