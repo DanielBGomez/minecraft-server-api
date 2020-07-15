@@ -195,10 +195,13 @@ class MinecraftRCONAPI {
             // Create glass cabin
             this.send(`tp ${player} ${x} ${y} ${z}`)
             .then(resp => {
-                // Send command
-                    this.send(`fill ${x - 1} ${y - 1} ${z - 1} ${x + 1} ${y + 2} ${z + 1} minecraft:glass hollow`)
-                        .then(resp2 => resolve(`${resp} ${resp2}`))
-                        .catch(reject)
+                    // Wait 1 secs
+                    setTimeout(() => {
+                        // Send command
+                        this.send(`execute at ${player} run fill ~-1 ~-1 ~-1 ~1 ~2 ~1 minecraft:glass hollow`)
+                            .then(resp2 => resolve(`${resp} ${resp2}`))
+                            .catch(reject)
+                    }, 100) 
                 })
                 .catch(reject)
         })
@@ -406,6 +409,30 @@ class MinecraftRCONAPI {
 
             // Send command
             this.send(`time ${type} ${amount}`)   
+                .then(resolve)
+                .catch(reject)
+        })
+    }
+    /**
+     * Add player to the whitelist.
+     * 
+     * @param {object} params 
+     * @param {string} params.player    Player's Minecraft username.
+     * @returns {Promise<object>}
+     */
+    addToWhitelist(params = {}){
+        return new Promise((resolve, reject) => {
+            const player = params.player || params
+
+            // Validations
+            try {
+                Validate.string(player, { label: 'Player', regexp: /^[A-Za-z_]{1,16}$/ })
+            } catch(err) {
+                return reject({ msg: "Los parámetros no son válidos", err: { player: err } })
+            }
+
+            // Send command
+            this.send(`whitelist add ${player}`)
                 .then(resolve)
                 .catch(reject)
         })
