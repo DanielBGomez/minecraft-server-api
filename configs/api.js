@@ -28,12 +28,24 @@ module.exports = {
             key: params => `${params.sound}-${params.target}`,
             requiredParams: ['sound']
         },
+        weather: {
+            command: 'setWeather',
+            cooldown: 600,
+            slug: 'weather',
+            requiredParams: ['type', 'duration']
+        },
         kick: {
             command: 'kickPlayer',
-            cooldown: 600,
+            cooldown: 60 * 10,
             slug: 'kick',
             key: params => params.player,
             requiredParams: ['player', 'reason']
+        },
+        whitelist: {
+            command: 'addToWhitelist',
+            cooldown: 60 * 30,
+            slug: 'whitelist',
+            requiredParams: ['player']
         },
         effect: {
             command: 'giveEffect',
