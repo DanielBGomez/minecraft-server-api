@@ -142,15 +142,14 @@ class Validate {
         }))
     }
     static number(input, options = {}){
+        if(typeof input == 'string' && /^(-?\d+\.\d+)$|^(-?\d+)$/.test(input.trim())) input = parseFloat(input)
+        
         return Validate._validate(input, merge(options, {
-            custom: input => {
-                switch(typeof input){
-                    case 'number':
-                        return input
-                    case 'string':
-                        if(/^(-?\d+\.\d+)$|^(-?\d+)$/.test(input.trim())) return input
-                }
-                return false
+            // Aditional validation
+            custom: val => {
+                if(typeof val == 'string') return /^(-?\d+\.\d+)$|^(-?\d+)$/.test(val.trim())
+
+                return true;
             }
         }))
     }
@@ -188,6 +187,9 @@ class Validate {
                     throw "Please provide a valid input for the length option"
             }
 
+            if(typeof length == "number" && isNaN(length) && options.optional){
+                // Ignore length options
+            } else
             if(typeof lengthOption == "object"){
                 if(lengthOption.min) if(length < lengthOption.min) throw msg.length || `Please provide a ${options.label || 'value'} with a valid size`
                 if(lengthOption.max) if(length > lengthOption.max) throw msg.length || `Please provide a ${options.label || 'value'} with a valid size`
