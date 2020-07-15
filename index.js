@@ -13,7 +13,7 @@ const Effects = require('./configs/effects.json')
 const instance = Server({
     distPath: process.env.DIST_PATH,
     port: process.env.PORT,
-    loopInterval: 5000,
+    loopInterval: 3000,
     ssl: {
         cert: fs.readFileSync(process.env.SSL_CERT || 'ssl/server.crt'),
         key: fs.readFileSync(process.env.SSL_KEY || 'ssl/server.key')
