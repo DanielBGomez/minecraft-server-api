@@ -157,7 +157,7 @@ class MinecraftRCONAPI {
             // Player is required
             const { player, tier = 1 } = params
             
-            const MaxNumber = 200 * Math.pow(10, 1 ) // tier)
+            const MaxNumber = 200 * Math.pow(10, 2 ) // tier)
 
             const x = typeof params.x != "undefined" ? params.x : parseInt( Math.random() * MaxNumber) - parseInt(MaxNumber / 2)
             const z = typeof params.z != "undefined" ? params.z : parseInt( Math.random() * MaxNumber) - parseInt(MaxNumber / 2)
