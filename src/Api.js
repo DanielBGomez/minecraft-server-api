@@ -273,9 +273,7 @@ class MinecraftRCONAPI {
                 errors.seconds = err
             }
             try {
-                Validate.number(amplifier - 1, { label: 'Amplifier', length: { min: 0, max: 255 } })
-
-                if(effect == 'instant_damage') Validate.number(amplifier, { label: 'Amplifier', length: { min: 0, max: 2 } })
+                Validate.number(parseFloat(amplifier) - 1, { label: 'Amplifier', length: { min: 0, max: 255 } })
             } catch(err) {
                 errors.amplifier = err
             }
@@ -284,7 +282,7 @@ class MinecraftRCONAPI {
             if( Object.keys(errors).length ) return reject({ msg: "Los parámetros no son válidos", err: errors })
 
             // Send command
-            this.send(`effect give ${player} ${effect} ${seconds} ${amplifier - 1} ${hideParticles ? 'true' : 'false'}`)   
+            this.send(`effect give ${player} ${effect} ${seconds} ${parseFloat(amplifier) - 1} ${hideParticles ? 'true' : 'false'}`)   
                 .then(resolve)
                 .catch(reject)
         })
