@@ -16,7 +16,7 @@ module.exports = {
         },
         tp: {
             command: 'tpPlayer',
-            cooldown: 1200,
+            cooldown: 60 * 30,
             slug: 'tp',
             key: params => params.player,
             requiredParams: ['player']
@@ -30,13 +30,13 @@ module.exports = {
         },
         weather: {
             command: 'setWeather',
-            cooldown: 600,
+            cooldown: 60 * 5,
             slug: 'weather',
             requiredParams: ['type', 'duration']
         },
         kick: {
             command: 'kickPlayer',
-            cooldown: 60 * 10,
+            cooldown: 60 * 5,
             slug: 'kick',
             key: params => params.player,
             requiredParams: ['player', 'reason']
@@ -49,7 +49,7 @@ module.exports = {
         },
         effect: {
             command: 'giveEffect',
-            cooldown: 60,
+            cooldown: 60 * 2,
             slug: 'effect',
             key: params => params.effect,
             requiredParams: ['effect']
