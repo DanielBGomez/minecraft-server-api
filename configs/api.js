@@ -57,7 +57,7 @@ module.exports = {
             command: 'giveEffect',
             cooldown: 60 * 2,
             slug: 'effect',
-            key: params => params.effect,
+            key: params => `${params.effect}-${params.player}`,
             requiredParams: ['effect']
         }
     }
