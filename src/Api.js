@@ -379,13 +379,13 @@ class MinecraftRCONAPI {
      * Changes the world's game time.
      * 
      * @param {object} params 
-     * @param {('day'|'night'|'noon'|'midnight')} params.type   Specifies the time type.
-     * @param {number} params.amount                            Specifies the time to add or set.
+     * @param {'set'|'add'} params.type                                 Specifies the time type.
+     * @param {number|'day'|'night'|'noon'|'midnight'} params.value     Specifies the time to add or set.
      * @returns {Promise<object>}
      */
-    setTime(params = {}){
+    updateTime(params = {}){
         return new Promise((resolve, reject) => {
-            const { type, amount } = params
+            const { type, value } = params
 
             // Validations
             const errors = {}
@@ -396,19 +396,19 @@ class MinecraftRCONAPI {
                 errors.type = err
             }
             try {
-                // If the type is 'set' the amount can be a timespec or time value
-                if(type == 'set') Validate.string(amount, { label: 'Duration', regexp: /^(?:day|night|noon|midnight|\d{1,6})$/ })
+                // If the type is 'set' the value can be a timespec or time value
+                if(type == 'set') Validate.string(value, { label: 'Duration', regexp: /^(?:day|night|noon|midnight|\d{1,6})$/ })
                 // Validate number
-                else Validate.number(amount, { label: 'Duration', length: { min: 0, max: 100000 } })
+                else Validate.number(value, { label: 'Duration', length: { min: 0, max: 100000 } })
             } catch(err){
-                errors.amount = err
+                errors.value = err
             }
 
             // Has errors
             if( Object.keys(errors).length ) return reject({ msg: "Los parámetros no son válidos", err: errors })
 
             // Send command
-            this.send(`time ${type} ${amount}`)   
+            this.send(`time ${type} ${value}`)   
                 .then(resolve)
                 .catch(reject)
         })

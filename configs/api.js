@@ -34,6 +34,12 @@ module.exports = {
             slug: 'weather',
             requiredParams: ['type', 'duration']
         },
+        time: {
+            command: 'updateTime',
+            cooldown: 60 * 5,
+            slug: 'time',
+            requiredParams: ['type', 'value']
+        },
         kick: {
             command: 'kickPlayer',
             cooldown: 60 * 5,
