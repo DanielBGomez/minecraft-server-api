@@ -10,6 +10,8 @@ const helmet = require('helmet')
 const io = require('socket.io')
 
 // Local Modules
+require('./Set-extension')
+
 const Api = require('./Api')
 const Cache = require('./Cache')
 const Validate = require('./Validate')
@@ -109,6 +111,7 @@ class Server {
         this.log("Server listening on port " + this.PORT)
         
         // Listeners
+        this._SocketServer.on("connection", this.socketConnection.bind(this))
 
         // Executions
         this._loop = this.connectLoop()
@@ -159,6 +162,25 @@ class Server {
      * Loop that looks up for queued commands and executes them.
      */
     loop(){
+        // Get players
+        this._Api.getPlayers()
+            .then(players => {
+                // Parse players and emit list if updated
+                if(this.parsePlayers(players)) {
+                    try {
+                        // Emit list if updated
+                        this._SocketServer.emit('players', Array.from(this.players))
+
+                        // Log
+                        this.log("Players list broadcasted through socket connection!")
+                    } catch(err) {
+                        // Log
+                        this.log("Error broadcasting players list through socket connection:", err)
+                    }
+                }
+            })
+            .catch(err => this.log("Error getting players", err))
+
         // Get queued commands
         this._Cache.get('commands', 'queue')
             .then(commands => {
@@ -314,6 +336,39 @@ class Server {
                 // Send
                 res.status(err.code || 500).send(err)
             })
+    }
+    /**
+     * Parse and store list of players.
+     * 
+     * @requires Set-extension lib
+     * 
+     * @param {Array<string>} players   Collection of online players.
+     * @returns {Set|false}             Returns Set of players if updated.
+     */
+    parsePlayers(players = []){
+        try {
+            // Parse as set
+            const Players = new Set(players)
+            // Has differences?
+            if(this.players.difference(Players).union( Players.difference(this.players) ).size) {
+                // Update players
+                this.players = Players
+                // Log
+                this.log("Players list updated!", this.players)
+
+                // Return
+                return this.players
+            }
+        } catch(err) {
+            this.log("Error parsing players!", err)
+        }
+    }
+    socketConnection(socket){
+        // 
+        this.log("Socket connection!")
+
+        // Send players
+        socket.emit('players', Array.from(this.players))
     }
     /**
      * Log any server event
