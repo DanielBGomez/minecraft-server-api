@@ -120,7 +120,7 @@ class MinecraftRCONAPI {
             const errors = {}
 
             try {
-                Validate.string(player, { label: 'Player', regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+                Validate.string(player, { label: 'Player', regexp: /^(?:@[aeprs]|[A-Za-z1-9_]{1,16})$/ })
             } catch(err){ errors.player = err }
 
             try {
@@ -167,7 +167,7 @@ class MinecraftRCONAPI {
             const errors = {}
 
             try {
-                Validate.string(player, { regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+                Validate.string(player, { regexp: /^(?:@[aeprs]|[A-Za-z1-9_]{1,16})$/ })
             } catch(err) {
                 errors.player = err
             }
@@ -220,7 +220,7 @@ class MinecraftRCONAPI {
 
             // Validations
             try {
-                Validate.string(player, { label: 'Player', regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+                Validate.string(player, { label: 'Player', regexp: /^(?:@[aeprs]|[A-Za-z1-9_]{1,16})$/ })
             } catch(err) {
                 errors.player = err
             }
@@ -258,7 +258,7 @@ class MinecraftRCONAPI {
             const errors = {}
 
             try {
-                Validate.string(player, { label: 'Player', regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+                Validate.string(player, { label: 'Player', regexp: /^(?:@[aeprs]|[A-Za-z1-9_]{1,16})$/ })
             } catch(err) {
                 errors.player = err
             }
@@ -274,6 +274,8 @@ class MinecraftRCONAPI {
             }
             try {
                 Validate.number(amplifier, { label: 'Amplifier', length: { min: 0, max: 255 } })
+
+                if(effect == 'instant_damage') Validate.number(amplifier, { label: 'Amplifier', length: { min: 0, max: 2 } })
             } catch(err) {
                 errors.amplifier = err
             }
@@ -319,7 +321,7 @@ class MinecraftRCONAPI {
             } catch(err){ errors.source = err }
 
             try {
-                Validate.string(target, { label: 'Target', regexp: /^(?:@[aeprs]|[A-Za-z_]{1,16})$/ })
+                Validate.string(target, { label: 'Target', regexp: /^(?:@[aeprs]|[A-Za-z1-9_]{1,16})$/ })
             } catch(err) { errors.target = err }
 
             try {
@@ -426,7 +428,7 @@ class MinecraftRCONAPI {
 
             // Validations
             try {
-                Validate.string(player, { label: 'Player', regexp: /^[A-Za-z_]{1,16}$/ })
+                Validate.string(player, { label: 'Player', regexp: /^[A-Za-z1-9_]{1,16}$/ })
             } catch(err) {
                 return reject({ msg: "Los parámetros no son válidos", err: { player: err } })
             }
