@@ -18,6 +18,7 @@ const Validate = require('./Validate')
 
 // Configs
 const API_CONFIG = require('../configs/api')
+const { clearTimeout } = require('timers')
 // const IS_DEVELOPMENT = process.env.NODE_ENV == 'development'
 
 // Class
@@ -114,7 +115,7 @@ class Server {
         this._SocketServer.on("connection", this.socketConnection.bind(this))
 
         // Executions
-        this._loop = this.connectLoop()
+        this.connectLoop()
 
         // Return instance
         return this
@@ -129,18 +130,18 @@ class Server {
             .then(() => {
                 this.log("Connected to Minecraft Server!")
 
-                // Start parsing loop
-                this._loop = this.loop()
+                // Execute loop
+                this.loop()
 
                 // Disconnect event
                 this._Api.onDisconnect = e => {
                         this.log("Connection with Minecraft server lost!")
-
+                        
                         // Clear loop
                         clearTimeout(this._loop)
 
-                        // Setup connect loop
-                        this._loop = this.connectLoop()
+                        // Execute connect loop
+                        this.connectLoop()
                     }
             })
             .catch(err => {
@@ -155,7 +156,8 @@ class Server {
 
                 this.log(`Next attemp in ${lastWait / 1000} seconds`)
 
-                setTimeout(() => this._loop = this.connectLoop(wait), wait)
+                // Setup new loop
+                this._loop = setTimeout(() => this.connectLoop(wait), wait)
             })
     }
     /**
@@ -230,14 +232,14 @@ class Server {
                     .then(resp => {
                         if(resp.length) this.log("Queued commands parsed", resp)
                     })
-                    .finally(() => setTimeout(() => this._loop = this.loop(), this.LOOP_INTEVAL))
+                    .finally(() => this._loop = setTimeout(() => this.loop(), this.LOOP_INTEVAL))
             })
             .catch(err => {
                 // Log error
                 this.log("Queue lookup error", err)
 
                 // Restart loop
-                setTimeout(() => this._loop = this.loop(), this.LOOP_INTEVAL)
+                this._loop = setTimeout(() => this.loop(), this.LOOP_INTEVAL)
             })
     }
     /**
