@@ -22,7 +22,7 @@
     "fs-extra": "^9.0.1",
     "hasha": "^5.2.0",
     "helmet": "^3.23.3",
-    "modern-rcon": "^1.0.3",
+    "rcon-client": "^4.2.1",
     "redis": "^3.0.2",
     "socket.io": "^2.3.0"
   },

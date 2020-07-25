@@ -16,7 +16,8 @@
  * - Give (dar items, etc)
 */
 
-const RCON = require('modern-rcon')
+// const RCON = require('modern-rcon')
+const RCON = require('rcon-client').Rcon
 const Validate = require('./Validate')
 
 class MinecraftRCONAPI {
@@ -47,17 +48,19 @@ class MinecraftRCONAPI {
         return this._rconConnection.send(command)
     }
     connect(params = {}){
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             // Construct RCON Connection
-            this._rconConnection = new RCON(
-                    params.minecraftServer || this._minecraftServer, 
-                    (params.rcon || {}).port || this._rconPort,
-                    (params.rcon || {}).password ||  this._rconPassword
-                )
-    
-            // Probar conexión
+            this._rconConnection = new RCON({
+                    host: params.minecraftServer || this._minecraftServer, 
+                    port: (params.rcon || {}).port || this._rconPort,
+                    password: (params.rcon || {}).password ||  this._rconPassword
+                })
+            
+            // Error handler
+            this._rconConnection.on("error", err => reject({ msg: "No se ha podido conectar al servidor", err }))
             this._rconConnection.connect()
-                .then(() => {
+                .then(conn => {
+                    this._rconConnection = conn
                     // Log
                     // console.log("Se ha conectado al servidor de minecraft!")
 
@@ -71,7 +74,7 @@ class MinecraftRCONAPI {
                      * Extension of Rcon lib
                      * handle close event
                      */
-                    this._rconConnection._tcpSocket.on('close', hadError => {
+                    this._rconConnection.on('end', hadError => {
                             // Update connected status
                             this._connected = false
 
@@ -79,7 +82,7 @@ class MinecraftRCONAPI {
                             if(typeof this.onDisconnect == "function") this.onDisconnect(hadError)
                         })
                 })
-                .catch(err => reject({ msg: "No se ha podido conectar al servidor", err }))
+                .catch(e => {})
         })
     }
     /**
